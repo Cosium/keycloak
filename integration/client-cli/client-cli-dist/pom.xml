@@ -21,7 +21,7 @@
     <parent>
         <artifactId>keycloak-client-cli-parent</artifactId>
         <groupId>org.keycloak</groupId>
-        <version>6.0.1.0.cosium-SNAPSHOT</version>
+        <version>6.0.1.0.cosium</version>
     </parent>
 
     <artifactId>keycloak-client-cli-dist</artifactId>
