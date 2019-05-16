@@ -11,7 +11,8 @@ echo "--------------------------------------------------------------------------
 echo "Deploying:"
 echo ""
 
-mvn -Pdistribution -DretryFailedDeploymentCount=10 -DskipTests -DskipTestsuite -DskipExamples deploy
+mvn -Pdistribution -DretryFailedDeploymentCount=10 -DskipTests -DskipTestsuite -DskipExamples \
+-DaltDeploymentRepository=cosium-repo::default::https://repo.cosium.com/repository/internal/ deploy
 
 
 echo "------------------------------------------------------------------------------------------------------------"

@@ -179,14 +179,6 @@
         <developerConnection>scm:git:https://github.com/Cosium/keycloak</developerConnection>
     </scm>
 
-    <distributionManagement>
-        <repository>
-            <id>cosium-repo</id>
-            <name>Internal Release Repository</name>
-            <url>https://repo.cosium.com/repository/internal/</url>
-        </repository>
-    </distributionManagement>
-
     <issueManagement>
         <system>JIRA</system>
         <url>http://jira.jboss.com/jira/browse/KEYCLOAK</url>
