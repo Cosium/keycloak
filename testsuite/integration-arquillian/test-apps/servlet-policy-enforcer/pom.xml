@@ -24,7 +24,7 @@
     <parent>
         <groupId>org.keycloak.testsuite</groupId>
         <artifactId>integration-arquillian-test-apps</artifactId>
-        <version>6.0.1</version>
+        <version>6.0.1.0.cosium-SNAPSHOT</version>
     </parent>
 
     <artifactId>servlet-policy-enforcer</artifactId>

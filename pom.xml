@@ -33,7 +33,7 @@
     </description>
     <groupId>org.keycloak</groupId>
     <artifactId>keycloak-parent</artifactId>
-    <version>6.0.1</version>
+    <version>6.0.1.0.cosium-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
@@ -174,16 +174,16 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git://github.com/keycloak/keycloak.git</connection>
-        <developerConnection>scm:git:git@github.com:keycloak/keycloak.git</developerConnection>
-        <url>https://github.com/keycloak/keycloak/tree/master/</url>
+        <url>https://github.com/Cosium/keycloak</url>
+        <connection>scm:git:https://github.com/Cosium/keycloak</connection>
+        <developerConnection>scm:git:https://github.com/Cosium/keycloak</developerConnection>
     </scm>
 
     <distributionManagement>
         <repository>
-            <id>jboss-releases-repository</id>
-            <name>JBoss Releases Repository</name>
-            <url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2/</url>
+            <id>cosium-repo</id>
+            <name>Internal Release Repository</name>
+            <url>https://repo.cosium.com/repository/internal/</url>
         </repository>
     </distributionManagement>
 
@@ -1469,16 +1469,6 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.sonatype.plugins</groupId>
-                    <artifactId>nexus-staging-maven-plugin</artifactId>
-                    <version>${nexus.staging.plugin.version}</version>
-                    <extensions>true</extensions>
-                    <configuration>
-                        <nexusUrl>https://repository.jboss.org/nexus</nexusUrl>
-                        <serverId>jboss-releases-repository</serverId>
-                    </configuration>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <configuration>
@@ -1492,6 +1482,10 @@
                     <configuration>
                         <autoVersionSubmodules>true</autoVersionSubmodules>
                         <tagNameFormat>@{project.version}</tagNameFormat>
+                        <pushChanges>false</pushChanges>
+                        <localCheckout>true</localCheckout>
+                        <localCheckout>true</localCheckout>
+                        <preparationGoals>clean</preparationGoals>
                     </configuration>
                 </plugin>
                 <plugin>
