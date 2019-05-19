@@ -1681,6 +1681,7 @@ public class RepresentationToModel {
                 hashedCred.setPeriod(30);
             }
             hashedCred.setCreatedDate(cred.getCreatedDate());
+            session.userCredentialManager().disableCredentialType(realm, user, hashedCred.getType());
             session.userCredentialManager().createCredential(realm, user, hashedCred);
             UserCache userCache = session.userCache();
             if (userCache != null) {
