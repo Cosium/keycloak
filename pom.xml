@@ -33,7 +33,7 @@
     </description>
     <groupId>org.keycloak</groupId>
     <artifactId>keycloak-parent</artifactId>
-    <version>6.0.1.0.cosium</version>
+    <version>6.0.1.1.cosium</version>
     <packaging>pom</packaging>
 
     <properties>
