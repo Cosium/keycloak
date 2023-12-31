@@ -1558,6 +1558,18 @@ public class RealmAdapter implements LegacyRealmModel, JpaModel<RealmEntity> {
     }
 
     @Override
+    public AuthenticationFlowModel getFirstBrokerLoginFlow() {
+        String flowId = realm.getFirstBrokerLoginFlow();
+        if (flowId == null) return null;
+        return getAuthenticationFlowById(flowId);
+    }
+
+    @Override
+    public void setFirstBrokerLoginFlow(AuthenticationFlowModel flow) {
+        realm.setFirstBrokerLoginFlow(flow.getId());
+    }
+
+    @Override
     public Stream<AuthenticationFlowModel> getAuthenticationFlowsStream() {
         return realm.getAuthenticationFlows().stream().map(this::entityToModel);
     }
