@@ -25,6 +25,7 @@ import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.Form;
 import jakarta.ws.rs.core.Response;
+import java.util.UUID;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.jboss.arquillian.graphene.page.Page;
 import org.junit.Assert;
@@ -36,6 +37,7 @@ import org.keycloak.admin.client.resource.UserResource;
 import org.keycloak.admin.client.resource.UsersResource;
 import org.keycloak.common.Profile;
 import org.keycloak.common.util.Base64Url;
+import org.keycloak.common.util.MultivaluedHashMap;
 import org.keycloak.cookie.CookieType;
 import org.keycloak.crypto.Algorithm;
 import org.keycloak.events.Details;
@@ -53,14 +55,17 @@ import org.keycloak.models.utils.SessionTimeoutHelper;
 import org.keycloak.protocol.oidc.OIDCLoginProtocol;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.ClientScopeRepresentation;
+import org.keycloak.representations.idm.ComponentRepresentation;
 import org.keycloak.representations.idm.EventRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.testsuite.AbstractTestRealmKeycloakTest;
 import org.keycloak.testsuite.AssertEvents;
 import org.keycloak.testsuite.ProfileAssume;
 import org.keycloak.testsuite.admin.ApiUtil;
 import org.keycloak.testsuite.arquillian.annotation.EnableFeature;
+import org.keycloak.testsuite.federation.FailableHardcodedStorageProviderFactory;
 import org.keycloak.testsuite.pages.AppPage;
 import org.keycloak.testsuite.pages.AppPage.RequestType;
 import org.keycloak.testsuite.pages.ErrorPage;
@@ -1055,4 +1060,39 @@ public class LoginTest extends AbstractTestRealmKeycloakTest {
            Assert.assertNotNull(session.authenticationSessions().getRootAuthenticationSession(session.getContext().getRealm(), authSessionId));
         });
    }
+
+	@Test
+	public void givenAFailingFederationLoginUserWithUsernameContainingEmail() {
+		String email = UUID.randomUUID() + "@test.com";
+
+		UserRepresentation user = UserBuilder.create()
+				.username(email)
+				.enabled(true)
+				.password("password")
+				.build();
+		String userId = ApiUtil.getCreatedId(testRealm().users().create(user));
+
+		ComponentRepresentation failingFederation = new ComponentRepresentation();
+		failingFederation.setName("failing");
+		failingFederation.setId(FailableHardcodedStorageProviderFactory.PROVIDER_ID);
+		failingFederation.setProviderId(FailableHardcodedStorageProviderFactory.PROVIDER_ID);
+		failingFederation.setProviderType(UserStorageProvider.class.getName());
+		failingFederation.setConfig(new MultivaluedHashMap<>());
+		failingFederation.getConfig().putSingle("fail", Boolean.toString(true));
+		testRealm().components().add(failingFederation).close();
+
+		try {
+			oauth.openLoginForm();
+			loginPage.assertCurrent();
+
+			loginPage.login(email, "password");
+
+			Assert.assertEquals(RequestType.AUTH_RESPONSE, appPage.getRequestType());
+			Assert.assertNotNull(oauth.parseLoginResponse().getCode());
+
+			events.expectLogin().user(userId).detail(Details.USERNAME, email).assertEvent();
+		} finally {
+			testRealm().components().component(failingFederation.getId()).remove();
+		}
+	}
 }

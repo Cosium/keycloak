@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -420,31 +421,80 @@ public class UserStorageManager extends AbstractStorageManager<UserStorageProvid
 
     @Override
     public UserModel getUserByUsername(RealmModel realm, String username) {
-        UserModel user = localStorage().getUserByUsername(realm, username);
-        if (user != null) {
-            return importValidation(realm, user);
-        }
-
-        return mapEnabledStorageProvidersWithTimeout(realm, UserLookupProvider.class,
-                provider -> provider.getUserByUsername(realm, username)).findFirst().orElse(null);
+		return getUserByUsername(realm, username, UserSearchLocation.ANY);
     }
 
     @Override
     public UserModel getUserByEmail(RealmModel realm, String email) {
-        UserModel user = localStorage().getUserByEmail(realm, email);
-        if (user != null) {
-            user = importValidation(realm, user);
-            // Case when email was changed directly in the userStorage and doesn't correspond anymore to the email from local DB
-            if (user != null && email.equalsIgnoreCase(user.getEmail())) {
-                return user;
-            }
-        }
-
-        return mapEnabledStorageProvidersWithTimeout(realm, UserLookupProvider.class,
-                provider -> provider.getUserByEmail(realm, email)).findFirst().orElse(null);
+		return getUserByEmail(realm, email, UserSearchLocation.ANY);
     }
 
-    /** {@link UserLookupProvider} methods implementations end here
+	@Override
+	public UserModel getUserByEmailOrUsername(RealmModel realm, String emailOrUsername) {
+		return Stream
+				.<Supplier<UserModel>>of(
+						() -> getUserByEmail(realm, emailOrUsername, UserSearchLocation.LOCAL),
+						() -> getUserByUsername(realm, emailOrUsername, UserSearchLocation.LOCAL),
+						() -> getUserByEmail(realm, emailOrUsername, UserSearchLocation.PROVIDERS),
+						() -> getUserByUsername(realm, emailOrUsername, UserSearchLocation.PROVIDERS))
+				.map(Supplier::get)
+				.filter(Objects::nonNull)
+				.findFirst().orElse(null);
+	}
+
+	private UserModel getUserByEmail(RealmModel realm, String email, UserSearchLocation location) {
+		UserModel user;
+		if (location.includeLocal) {
+			user = localStorage().getUserByEmail(realm, email);
+			if (user != null) {
+				user = importValidation(realm, user);
+				// Case when email was changed directly in the userStorage and doesn't correspond anymore to the email from local DB
+				if (user != null && email.equalsIgnoreCase(user.getEmail())) {
+					return user;
+				}
+			}
+		}
+
+		if (!location.includeProviders) {
+			return null;
+		}
+
+		return mapEnabledStorageProvidersWithTimeout(realm, UserLookupProvider.class,
+				provider -> provider.getUserByEmail(realm, email)).findFirst().orElse(null);
+	}
+
+	private UserModel getUserByUsername(RealmModel realm, String username, UserSearchLocation location) {
+		UserModel user;
+		if (location.includeLocal) {
+			user = localStorage().getUserByUsername(realm, username);
+			if (user != null) {
+				return importValidation(realm, user);
+			}
+		}
+
+		if (!location.includeProviders) {
+			return null;
+		}
+
+		return mapEnabledStorageProvidersWithTimeout(realm, UserLookupProvider.class,
+				provider -> provider.getUserByUsername(realm, username)).findFirst().orElse(null);
+	}
+
+	private enum UserSearchLocation {
+		LOCAL(true,false),
+		PROVIDERS(false, true),
+		ANY(true, true);
+
+		private final boolean includeLocal;
+		private final boolean includeProviders;
+
+		UserSearchLocation(boolean includeLocal, boolean includeProviders) {
+			this.includeLocal = includeLocal;
+			this.includeProviders = includeProviders;
+		}
+	}
+
+	/** {@link UserLookupProvider} methods implementations end here
         {@link UserQueryProvider} methods implementation start here */
 
     @Override

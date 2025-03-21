@@ -16,6 +16,7 @@
  */
 package org.keycloak.storage.user;
 
+import java.util.Optional;
 import org.keycloak.credential.CredentialInput;
 import org.keycloak.models.CredentialValidationOutput;
 import org.keycloak.models.RealmModel;
@@ -71,4 +72,9 @@ public interface UserLookupProvider {
      * @throws org.keycloak.models.ModelDuplicateException when there are more users with same email
      */
     UserModel getUserByEmail(RealmModel realm, String email);
+
+	default UserModel getUserByEmailOrUsername(RealmModel realm, String emailOrUsername) {
+		return Optional.ofNullable(getUserByEmail(realm, emailOrUsername))
+				.orElseGet(() -> getUserByUsername(realm, emailOrUsername));
+	}
 }
