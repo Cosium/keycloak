@@ -49,6 +49,7 @@ import org.keycloak.events.EventType;
 import org.keycloak.models.AccountRoles;
 import org.keycloak.models.FederatedIdentityModel;
 import org.keycloak.models.IdentityProviderModel;
+import org.keycloak.models.IdentityProviderShowInAccountConsole;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
@@ -136,8 +137,9 @@ public class LinkedAccountsResource {
         List<LinkedAccountRepresentation> linkedAccounts;
         if (linked) {
             // we want only linked accounts, fetch those from the federated identities.
+			Set<IdentityProviderShowInAccountConsole> includedShowInAccountConsoleValues = Set.of(IdentityProviderShowInAccountConsole.ALWAYS, IdentityProviderShowInAccountConsole.WHEN_LINKED);
             linkedAccounts = StreamsUtil.paginatedStream(session.users().getFederatedIdentitiesStream(realm, user)
-                    .map(fedIdentity -> this.toLinkedAccount(session.identityProviders().getByAlias(fedIdentity.getIdentityProvider()), fedIdentity.getUserName()))
+                    .map(fedIdentity -> this.toLinkedAccount(session.identityProviders().getByAlias(fedIdentity.getIdentityProvider()), fedIdentity.getUserName(), includedShowInAccountConsoleValues))
                     .filter(account -> account != null && this.matchesLinkedProvider(account, search))
                     .sorted(), firstResult, maxResults)
                     .toList();
@@ -150,19 +152,23 @@ public class LinkedAccountsResource {
                     IdentityProviderModel.ENABLED, "true",
                     IdentityProviderModel.ORGANIZATION_ID, "",
                     IdentityProviderModel.SEARCH, search == null ? "" : search,
-                    IdentityProviderModel.ALIAS_NOT_IN, fedAliasesToExclude);
+                    IdentityProviderModel.ALIAS_NOT_IN, fedAliasesToExclude,
+					IdentityProviderModel.SHOW_IN_ACCOUNT_CONSOLE, IdentityProviderShowInAccountConsole.ALWAYS.name());
 
             linkedAccounts = session.identityProviders().getAllStream(searchOptions, firstResult, maxResults)
-                    .map(idp -> this.toLinkedAccount(idp, null))
+                    .map(idp -> this.toLinkedAccount(idp, null, null))
                     .toList();
         }
         return Cors.builder().auth().allowedOrigins(auth.getToken()).add(Response.ok(linkedAccounts));
     }
 
-    private LinkedAccountRepresentation toLinkedAccount(IdentityProviderModel provider, String fedIdentity) {
+    private LinkedAccountRepresentation toLinkedAccount(IdentityProviderModel provider, String fedIdentity, Set<IdentityProviderShowInAccountConsole> includedShowInAccountConsoleValues) {
         if (provider == null || !provider.isEnabled()) {
             return null;
         }
+		if (includedShowInAccountConsoleValues != null && !includedShowInAccountConsoleValues.contains(provider.getShowInAccountConsole())) {
+			return null;
+		}
         LinkedAccountRepresentation rep = new LinkedAccountRepresentation();
         rep.setConnected(fedIdentity != null);
         rep.setSocial(socialIds.contains(provider.getProviderId()));
@@ -193,7 +199,7 @@ public class LinkedAccountsResource {
 
     @Deprecated
     public List<LinkedAccountRepresentation> getLinkedAccounts(KeycloakSession session, RealmModel realm, UserModel user) {
-        return session.identityProviders().getAllStream(Map.of(IdentityProviderModel.ENABLED, "true"), null, null)
+        return session.identityProviders().getAllStream(Map.of(IdentityProviderModel.ENABLED, "true", IdentityProviderModel.SHOW_IN_ACCOUNT_CONSOLE, IdentityProviderShowInAccountConsole.ALWAYS.name()), null, null)
                 .map(provider -> toLinkedAccountRepresentation(provider, session.users().getFederatedIdentitiesStream(realm, user)))
                 .filter(Objects::nonNull)
                 .sorted().toList();
