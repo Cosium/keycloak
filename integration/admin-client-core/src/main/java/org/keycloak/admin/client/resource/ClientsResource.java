@@ -66,6 +66,12 @@ public interface ClientsResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    List<ClientRepresentation> searchByName(@QueryParam("name") String name,
+                                            @QueryParam("first") Integer firstResult,
+                                            @QueryParam("max") Integer maxResults);
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
     List<ClientRepresentation> query(@QueryParam("q") String searchQuery);
 
     @Path("{id}")

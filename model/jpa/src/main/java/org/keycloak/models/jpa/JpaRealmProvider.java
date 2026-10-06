@@ -1047,6 +1047,15 @@ public class JpaRealmProvider implements RealmProvider, ClientProvider, ClientSc
 
     @Override
     public Stream<ClientModel> searchClientsByClientIdStream(RealmModel realm, String clientId, Integer firstResult, Integer maxResults) {
+        return searchClientsByColumnStream(realm, "clientId", clientId, firstResult, maxResults);
+    }
+
+    @Override
+    public Stream<ClientModel> searchClientsByNameStream(RealmModel realm, String name, Integer firstResult, Integer maxResults) {
+        return searchClientsByColumnStream(realm, "name", name, firstResult, maxResults);
+    }
+
+    private Stream<ClientModel> searchClientsByColumnStream(RealmModel realm, String column, String value, Integer firstResult, Integer maxResults) {
         CriteriaBuilder builder = em.getCriteriaBuilder();
         CriteriaQuery<String> queryBuilder = builder.createQuery(String.class);
         Root<ClientEntity> root = queryBuilder.from(ClientEntity.class);
@@ -1055,11 +1064,11 @@ public class JpaRealmProvider implements RealmProvider, ClientProvider, ClientSc
         List<Predicate> predicates = new ArrayList<>();
 
         predicates.add(builder.equal(root.get("realmId"), realm.getId()));
-        predicates.add(builder.like(builder.lower(root.get("clientId")), builder.lower(builder.literal("%" + clientId + "%"))));
+        predicates.add(builder.like(builder.lower(root.get(column)), builder.lower(builder.literal("%" + value + "%"))));
         predicates.addAll(AdminPermissionsSchema.SCHEMA.applyAuthorizationFilters(session, AdminPermissionsSchema.CLIENTS, realm, builder, queryBuilder, root));
 
         Predicate finalPredicate = builder.and(predicates.toArray(new Predicate[0]));
-        queryBuilder.where(finalPredicate).orderBy(builder.asc(root.get("clientId")));
+        queryBuilder.where(finalPredicate).orderBy(builder.asc(root.get(column)));
 
         Stream<String> results = paginateQuery(em.createQuery(queryBuilder), firstResult, maxResults).getResultStream();
         return closing(results.map(id -> new ClientModelLazyDelegate.WithId(session, realm, id)));

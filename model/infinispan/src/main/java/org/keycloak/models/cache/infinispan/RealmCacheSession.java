@@ -1304,6 +1304,11 @@ public class RealmCacheSession implements CacheRealmProvider {
     }
 
     @Override
+    public Stream<ClientModel> searchClientsByNameStream(RealmModel realm, String name, Integer firstResult, Integer maxResults) {
+        return getClientDelegate().searchClientsByNameStream(realm, name, firstResult, maxResults);
+    }
+
+    @Override
     public Stream<ClientModel> searchClientsByAttributes(RealmModel realm, Map<String, String> attributes, Integer firstResult, Integer maxResults) {
         return getClientDelegate().searchClientsByAttributes(realm, attributes, firstResult, maxResults);
     }

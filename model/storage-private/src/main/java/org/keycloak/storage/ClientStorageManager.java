@@ -164,6 +164,11 @@ public class ClientStorageManager implements ClientProvider {
     }
 
     @Override
+    public Stream<ClientModel> searchClientsByNameStream(RealmModel realm, String name, Integer firstResult, Integer maxResults) {
+        return query((p, f, m) -> p.searchClientsByNameStream(realm, name, f, m), realm, firstResult, maxResults);
+    }
+
+    @Override
     public Stream<ClientModel> searchClientsByAttributes(RealmModel realm, Map<String, String> attributes, Integer firstResult, Integer maxResults) {
         return query((p, f, m) -> p.searchClientsByAttributes(realm, attributes, f, m), realm, firstResult, maxResults);
     }

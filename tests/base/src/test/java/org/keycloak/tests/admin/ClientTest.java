@@ -739,6 +739,25 @@ public class ClientTest {
         assertPaginatedClients(6, 10, managedRealm.admin().clients().findAll("ccx-", null, true, 5, 5));
     }
 
+    @Test
+    public void searchClientsByName() {
+        for (String[] clientIdAndName : new String[][] {
+                {"billing-portal", "Billing Portal"},
+                {"accounting-api", "Accounting billing API"},
+                {"billing-batch", "Nightly batch"},
+                {"shop", null}}) {
+            ClientRepresentation c = ClientBuilder.create().clientId(clientIdAndName[0]).name(clientIdAndName[1]).build();
+            Response response = managedRealm.admin().clients().create(c);
+            String id = ApiUtil.getCreatedId(response);
+            managedRealm.cleanup().add(r -> r.clients().get(id).remove());
+        }
+
+        assertThat(managedRealm.admin().clients().searchByName("BILLING", null, null).stream().map(ClientRepresentation::getClientId).toList(),
+                is(List.of("accounting-api", "billing-portal")));
+        assertThat(managedRealm.admin().clients().searchByName("billing", 1, 1).stream().map(ClientRepresentation::getClientId).toList(),
+                is(List.of("billing-portal")));
+    }
+
     private void assertPaginatedClients(int start, int end, List<ClientRepresentation> actual) {
         List<String> expected = new LinkedList<>();
         for (int i = start; i <= end; i++) {

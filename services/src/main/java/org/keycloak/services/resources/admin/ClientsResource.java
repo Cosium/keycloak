@@ -123,13 +123,14 @@ public class ClientsResource {
     @Operation( summary = "Get clients belonging to the realm.",
         description = "If a client can’t be retrieved from the storage due to a problem with the underlying storage, it is silently removed from the returned list. This ensures that concurrent modifications to the list don’t prevent callers from retrieving this list.")
     public Stream<ClientRepresentation> getClients(@Parameter(description = "filter by clientId") @QueryParam("clientId") String clientId,
+                                                 @Parameter(description = "filter by case-insensitive substring of the client name") @QueryParam("name") String name,
                                                  @Parameter(description = "filter clients that cannot be viewed in full by admin") @QueryParam("viewableOnly") @DefaultValue("false") boolean viewableOnly,
                                                  @Parameter(description = "whether this is a search query or a getClientById query") @QueryParam("search") @DefaultValue("false") boolean search,
                                                  @QueryParam("q") String searchQuery,
                                                  @Parameter(description = "the first result") @QueryParam("first") Integer firstResult,
                                                  @Parameter(description = "the max results to return") @QueryParam("max") Integer maxResults) {
         return ModelToRepresentation.filterValidRepresentations(
-                getClientModels(clientId, viewableOnly, search, searchQuery, firstResult, maxResults), c -> {
+                getClientModels(clientId, name, viewableOnly, search, searchQuery, firstResult, maxResults), c -> {
                     ClientRepresentation representation = ModelToRepresentation.toRepresentation(c, session);
                     if (!auth.clients().canManage(c)) {
                         StripSecretsUtils.stripClient(representation);
@@ -140,6 +141,7 @@ public class ClientsResource {
     }
 
     public Stream<ClientModel> getClientModels(String clientId,
+            String name,
             boolean viewableOnly,
             boolean search,
             String searchQuery,
@@ -155,6 +157,10 @@ public class ClientsResource {
                 clientModels = canView
                         ? realm.searchClientByAttributes(attributes, firstResult, maxResults)
                         : realm.searchClientByAttributes(attributes, -1, -1);
+            } else if (name != null && !name.isBlank()) {
+                clientModels = canView
+                        ? session.clients().searchClientsByNameStream(realm, name, firstResult, maxResults)
+                        : session.clients().searchClientsByNameStream(realm, name, -1, -1);
             } else if (clientId == null || clientId.trim().equals("")) {
                 clientModels = canView
                         ? realm.getClientsStream(firstResult, maxResults)

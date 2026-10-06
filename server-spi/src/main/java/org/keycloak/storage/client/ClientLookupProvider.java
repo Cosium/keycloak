@@ -16,6 +16,7 @@
  */
 package org.keycloak.storage.client;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -58,6 +59,28 @@ public interface ClientLookupProvider {
      * @return Stream of ClientModel or an empty stream if no client is found. Never returns {@code null}.
      */
     Stream<ClientModel> searchClientsByClientIdStream(RealmModel realm, String clientId, Integer firstResult, Integer maxResults);
+
+    /**
+     * Case-insensitive search for clients that contain the given string in their display name.
+     * @param realm Realm to limit the search for clients.
+     * @param name Searched substring of the client display name.
+     * @param firstResult First result to return. Ignored if negative or {@code null}.
+     * @param maxResults Maximum number of results to return. Ignored if negative or {@code null}.
+     * @return Stream of ClientModel or an empty stream if no client is found. Never returns {@code null}.
+     */
+    default Stream<ClientModel> searchClientsByNameStream(RealmModel realm, String name, Integer firstResult, Integer maxResults) {
+        String lowerCaseName = name.toLowerCase(Locale.ROOT);
+        Stream<ClientModel> clients = searchClientsByAttributes(realm, Map.of(), null, null)
+                .filter(client -> client.getName() != null)
+                .filter(client -> client.getName().toLowerCase(Locale.ROOT).contains(lowerCaseName));
+        if (firstResult != null && firstResult >= 0) {
+            clients = clients.skip(firstResult);
+        }
+        if (maxResults != null && maxResults >= 0) {
+            clients = clients.limit(maxResults);
+        }
+        return clients;
+    }
 
     Stream<ClientModel> searchClientsByAttributes(RealmModel realm, Map<String, String> attributes, Integer firstResult, Integer maxResults);
 

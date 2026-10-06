@@ -29,6 +29,7 @@ export interface PaginatedQuery {
 
 export interface ClientQuery extends PaginatedQuery {
   clientId?: string;
+  name?: string;
   viewableOnly?: boolean;
   search?: boolean;
   q?: string;

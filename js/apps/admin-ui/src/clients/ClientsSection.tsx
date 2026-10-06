@@ -1,18 +1,23 @@
 import type ClientRepresentation from "@keycloak/keycloak-admin-client/lib/defs/clientRepresentation";
 import type { ClientQuery } from "@keycloak/keycloak-admin-client/lib/resources/clients";
-import { useAlerts, useEnvironment } from "@keycloak/keycloak-ui-shared";
+import {
+  KeycloakSelect,
+  useAlerts,
+  useEnvironment,
+} from "@keycloak/keycloak-ui-shared";
 import {
   AlertVariant,
   Badge,
   Button,
   ButtonVariant,
   PageSection,
+  SelectOption,
   Tab,
   TabTitleText,
   ToolbarItem,
   Tooltip,
 } from "@patternfly/react-core";
-import { WarningTriangleIcon } from "@patternfly/react-icons";
+import { FilterIcon, WarningTriangleIcon } from "@patternfly/react-icons";
 import { IRowData, TableText, cellWidth } from "@patternfly/react-table";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -33,6 +38,7 @@ import helpUrls from "../help-urls";
 import { emptyFormatter, exportClient } from "../util";
 import { convertClientToUrl } from "../utils/client-url";
 import { translationFormatter } from "../utils/translationFormatter";
+import useToggle from "../utils/useToggle";
 import { InitialAccessTokenList } from "./initial-access/InitialAccessTokenList";
 import { ClientRegistration } from "./registration/ClientRegistration";
 import { toAddClient } from "./routes/AddClient";
@@ -134,6 +140,35 @@ const ToolbarItems = () => {
   );
 };
 
+type SearchType = "clientId" | "name";
+
+type SearchTypeSelectProps = {
+  searchType: SearchType;
+  onChange: (searchType: SearchType) => void;
+};
+
+const SearchTypeSelect = ({ searchType, onChange }: SearchTypeSelectProps) => {
+  const { t } = useTranslation();
+  const [open, toggle] = useToggle();
+
+  return (
+    <KeycloakSelect
+      data-testid="client-search-type-select"
+      isOpen={open}
+      onToggle={toggle}
+      toggleIcon={<FilterIcon />}
+      onSelect={(value) => {
+        onChange(value as SearchType);
+        toggle();
+      }}
+      selections={searchType}
+    >
+      <SelectOption value="clientId">{t("clientId")}</SelectOption>
+      <SelectOption value="name">{t("clientName")}</SelectOption>
+    </KeycloakSelect>
+  );
+};
+
 export default function ClientsSection() {
   const { adminClient } = useAdminClient();
 
@@ -147,13 +182,16 @@ export default function ClientsSection() {
 
   const { hasAccess } = useAccess();
   const isManager = hasAccess("manage-clients");
+  const [searchType, setSearchType] = useState<SearchType>("clientId");
 
   const loader = async (first?: number, max?: number, search?: string) => {
     const params: ClientQuery = {
       first: first!,
       max: max!,
     };
-    if (search) {
+    if (search && searchType === "name") {
+      params.name = search;
+    } else if (search) {
       params.clientId = search;
       params.search = true;
     }
@@ -214,6 +252,15 @@ export default function ClientsSection() {
               isPaginated
               ariaLabelKey="clientList"
               searchPlaceholderKey="searchForClient"
+              searchTypeComponent={
+                <SearchTypeSelect
+                  searchType={searchType}
+                  onChange={(type) => {
+                    setSearchType(type);
+                    refresh();
+                  }}
+                />
+              }
               toolbarItem={<ToolbarItems />}
               actionResolver={(rowData: IRowData) => {
                 const client: ClientRepresentation = rowData.data;
